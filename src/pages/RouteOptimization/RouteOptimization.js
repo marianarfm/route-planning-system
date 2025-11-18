@@ -5,6 +5,7 @@ import map from '../../assets/images/map-location-pin-svgrepo-com.svg';
 import distance from '../../assets/images/distance-svgrepo-com.svg';
 import time from '../../assets/images/time-svgrepo-com.svg';
 import carbonFootprint from '../../assets/images/plant-svgrepo-com.svg';
+import './RouteOptimization.css';
 
 const mockDeliveryPoints = [
   { id: 1, name: 'Cliente A', address: 'Rua das Flores, 123, Fortaleza - CE' },
