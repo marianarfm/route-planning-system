@@ -134,12 +134,13 @@ function RouteInfo({ info }) {
   );
 }
 
-export default function RouteOptimization() {
+export default function RouteOptimization({ onLogout }) {
   return (
     <div className="route-optimization-page">
       <header className="page-header">
         <h1 className="page-title">Otimização de Rotas</h1>
         <p className="page-subtitle">Adicione pontos de entrega e otimize sua rota</p>
+        <button className="btn-logout" onClick={onLogout}>Sair</button>
       </header>
       
       <div className="page-wrapper">

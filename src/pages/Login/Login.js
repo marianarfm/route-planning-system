@@ -1,7 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import './Login.css';
 
-export default function Login() {
+export default function Login({ onLogin }) {
+  const [formData, setFormData] = useState({
+    email: "",
+    password: ""
+  });
+
   return (
     <div className="login-page">
       <div className="login-container">
@@ -37,7 +42,7 @@ export default function Login() {
             <a href="#forgot" className="link">Esqueci minha senha</a>
           </div>
 
-          <button className="btn-primary btn-full">Entrar</button>
+          <button className="btn-primary btn-full" onClick={() => {onLogin(formData.email, formData.password);}}>Entrar</button>
 
           <div className="divider">
             <span>ou</span>
