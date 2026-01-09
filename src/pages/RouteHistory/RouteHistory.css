@@ -99,6 +99,56 @@
   color: #333;
 }
 
+/* Empty State */
+.empty-state {
+  background: #fff;
+  padding: 60px 40px;
+  border-radius: 8px;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.empty-icon {
+  width: 64px;
+  height: 64px;
+  margin-bottom: 20px;
+}
+
+.empty-state h3 {
+  margin: 0 0 10px 0;
+  font-size: 24px;
+  color: #333;
+}
+
+.empty-state p {
+  margin: 0 0 30px 0;
+  color: #666;
+}
+
+.route-points {
+  margin-top: 20px;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 6px;
+}
+
+.route-points h4 {
+  margin: 0 0 15px 0;
+  font-size: 16px;
+  color: #333;
+}
+
+.route-points ol {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.route-points li {
+  margin-bottom: 10px;
+  color: #555;
+  line-height: 1.5;
+}
+
 /* Routes List */
 .routes-list {
   display: flex;

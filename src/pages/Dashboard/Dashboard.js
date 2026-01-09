@@ -1,4 +1,5 @@
 import React from 'react';
+import { useApp } from '../../contexts/AppContext';
 import logo from '../../assets/images/logo.png';
 import graph from '../../assets/images/graph-svgrepo-com.svg';
 import rocket from '../../assets/images/rocket-svgrepo-com.svg';
@@ -10,12 +11,16 @@ import check from '../../assets/images/check-circle-svgrepo-com.svg';
 import './Dashboard.css';
 
 export default function Dashboard({ onLogout, onNavigate }) {
+  const { routes } = useApp();
+
   const stats = {
-    totalRoutes: 12,
-    routesToday: 3,
-    totalDistance: '234.5 km',
-    carbonSaved: '45.2 kg CO₂'
+    totalRoutes: routes.length,
+    routesToday: routes.filter(r => r.date === new Date().toLocaleDateString('pt-BR')).length,
+    totalDistance: routes.reduce((acc, r) => acc + (parseFloat(r.distance) || 0), 0).toFixed(1),
+    carbonSaved: routes.reduce((acc, r) => acc + (parseFloat(r.carbon) || 0), 0).toFixed(1)
   };
+
+  const recentRoutes = routes.slice(0, 3);
 
   return (
     <div className="dashboard-page">
@@ -58,7 +63,7 @@ export default function Dashboard({ onLogout, onNavigate }) {
             <img className="stat-icon" src={distance} alt="Distância" />
             <div className="stat-info">
               <p className="stat-label">Distância Total</p>
-              <p className="stat-value">{stats.totalDistance}</p>
+              <p className="stat-value">{stats.totalDistance} km</p>
             </div>
           </div>
 
@@ -66,7 +71,7 @@ export default function Dashboard({ onLogout, onNavigate }) {
             <img className="stat-icon" src={carbonFootprint} alt="Pegada de Carbono" />
             <div className="stat-info">
               <p className="stat-label">Carbono Economizado</p>
-              <p className="stat-value">{stats.carbonSaved}</p>
+              <p className="stat-value">{stats.carbonSaved} kg CO₂</p>
             </div>
           </div>
         </div>
@@ -96,41 +101,31 @@ export default function Dashboard({ onLogout, onNavigate }) {
 
         <div className="recent-section">
           <h3>Últimas Rotas</h3>
-          <div className="recent-list">
-            <div className="recent-item">
-              <img className="recent-icon" src={check} alt="Sinal de Visto" />
-              <div className="recent-info">
-                <p className="recent-name">Rota Centro - Aldeota</p>
-                <p className="recent-date">Hoje, 14:30</p>
+          {recentRoutes.length === 0 ? (
+            <p className="empty-message">Nenhuma rota criada ainda. Crie sua primeira rota!</p>
+          ) : (
+            <>
+              <div className="recent-list">
+                {recentRoutes.map(route => (
+                  <div key={route.id} className="recent-item">
+                    <img className="recent-icon" src={check} alt="Sinal de Visto" />
+                    <div className="recent-info">
+                      <p className="recent-name">{route.name}</p>
+                      <p className="recent-date">{route.date}, {route.time}</p>
+                    </div>
+                    <span className="recent-distance">{route.distance}</span>
+                  </div>
+                ))}
               </div>
-              <span className="recent-distance">15.3 km</span>
-            </div>
 
-            <div className="recent-item">
-              <img className="recent-icon" src={check} alt="Sinal de Visto" />
-              <div className="recent-info">
-                <p className="recent-name">Rota Messejana</p>
-                <p className="recent-date">Hoje, 10:15</p>
-              </div>
-              <span className="recent-distance">12.8 km</span>
-            </div>
-
-            <div className="recent-item">
-              <img className="recent-icon" src={check} alt="Sinal de Visto" />
-              <div className="recent-info">
-                <p className="recent-name">Rota Fortaleza Sul</p>
-                <p className="recent-date">Ontem, 16:45</p>
-              </div>
-              <span className="recent-distance">23.1 km</span>
-            </div>
-          </div>
-
-          <button 
-            className="btn-view-all"
-            onClick={() => onNavigate('history')}
-          >
-            Ver Todas as Rotas →
-          </button>
+              <button 
+                className="btn-view-all"
+                onClick={() => onNavigate('history')}
+              >
+                Ver Todas as Rotas →
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>

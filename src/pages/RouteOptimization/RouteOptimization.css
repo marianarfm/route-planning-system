@@ -357,6 +357,28 @@
   color: #333;
 }
 
+/* Save Route */
+.save-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.save-dialog-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.save-dialog-buttons button {
+  flex: 1;
+}
+
+.btn-secondary:disabled,
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* Responsive */
 @media (max-width: 1024px) {
   .page-content {

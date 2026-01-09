@@ -1,26 +1,21 @@
 import React, { useState } from 'react';
 import './App.css';
+import { AppProvider, useApp } from './contexts/AppContext';
 import Login from './pages/Login/Login';
 import Dashboard from './pages/Dashboard/Dashboard';
 import RouteOptimization from './pages/RouteOptimization/RouteOptimization';
 import RouteHistory from './pages/RouteHistory/RouteHistory';
 
-function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+function AppContent() {
+  const { user, logout } = useApp();
   const [currentPage, setCurrentPage] = useState('dashboard');
-  
-  const handleLogin = () => {
-    setIsLoggedIn(true);
-    setCurrentPage('dashboard');
-  };
-
-  const handleLogout = () => {
-    setIsLoggedIn(false);
-    setCurrentPage('dashboard');
-  };
 
   const handleNavigate = (page) => {
     setCurrentPage(page);
+  };
+
+  const handleLogout = () => {
+    logout();
   };
 
   const renderPage = () => {
@@ -38,8 +33,16 @@ function App() {
 
   return (
     <div className="App">
-      {isLoggedIn ? renderPage() : <Login onLogin={handleLogin} />}
+      {user ? renderPage() : <Login />}
     </div>
+  );
+}
+
+function App() {
+  return (
+    <AppProvider>
+      <AppContent />
+    </AppProvider>
   );
 }
 
