@@ -5,6 +5,7 @@ import map from '../../assets/images/map-location-pin-svgrepo-com.svg';
 import distance from '../../assets/images/distance-svgrepo-com.svg';
 import time from '../../assets/images/time-svgrepo-com.svg';
 import carbonFootprint from '../../assets/images/plant-svgrepo-com.svg';
+import clipboard from '../../assets/images/clipboard-text-svgrepo-com.svg';
 import './RouteOptimization.css';
 
 const mockDeliveryPoints = [
@@ -134,13 +135,24 @@ function RouteInfo({ info }) {
   );
 }
 
-export default function RouteOptimization({ onLogout }) {
+export default function RouteOptimization({ onNavigate }) {
   return (
     <div className="route-optimization-page">
       <header className="page-header">
-        <h1 className="page-title">Otimização de Rotas</h1>
-        <p className="page-subtitle">Adicione pontos de entrega e otimize sua rota</p>
-        <button className="btn-logout" onClick={onLogout}>Sair</button>
+        <button 
+          className="btn-back" 
+          onClick={() => onNavigate('dashboard')}
+        >
+          ← Voltar
+        </button>
+        <h1 className="page-title">Criar Nova Rota</h1>
+        <button 
+          className="btn-history" 
+          onClick={() => onNavigate('history')}
+        >
+          <img className="btn-history-icon" src={clipboard} alt="Histórico" />
+          Histórico
+        </button>
       </header>
       
       <div className="page-wrapper">

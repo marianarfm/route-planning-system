@@ -8,12 +8,52 @@
 
 /* Header */
 .page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
   text-align: center;
   margin-bottom: 0;
   background-color: #fff;
-  padding: 30px;
+  padding: 20px 30px;
   border-radius: 0;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.header-center {
+  flex: 1;
+  text-align: center;
+}
+
+.btn-back,
+.btn-history {
+  background: #6c757d;
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+
+.btn-history {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center; 
+  gap: 8px;                 
+}
+
+.btn-history-icon {
+  width: 18px;
+  height: 18px;
+  filter: invert(100%) sepia(0%) saturate(7477%) hue-rotate(279deg) brightness(106%) contrast(105%);
+}
+
+.btn-back:hover,
+.btn-history:hover {
+  background: #545b62;
 }
 
 .page-wrapper {
@@ -21,9 +61,9 @@
 }
 
 .page-title {
-  margin: 0 0 10px 0;
+  margin: 0 0 0 0;
   color: #333;
-  font-size: 32px;
+  font-size: 24px;
 }
 
 .page-subtitle {
@@ -33,9 +73,6 @@
 }
 
 .btn-logout {
-  position: absolute;
-  top: 20px;
-  right: 20px;
   background-color: #dc3545;
   color: #fff;
   border: none;
@@ -342,5 +379,15 @@
 
   .route-optimization-page {
     padding: 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+  }
+
+  .header-center {
+    order: -1;
   }
 }
