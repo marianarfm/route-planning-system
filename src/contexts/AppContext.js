@@ -1,4 +1,5 @@
-import React, { createContext, useState, useContext } from 'react';
+import React, { createContext, useState, useContext, useEffect } from 'react';
+import { authAPI, routesAPI, statsAPI } from '../services/api';
 
 const AppContext = createContext();
 
@@ -12,112 +13,149 @@ export const useApp = () => {
 
 export const AppProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  
-  const [routes, setRoutes] = useState([
-    {
-      id: 1,
-      name: 'Rota Centro - Aldeota',
-      date: '10/01/2025',
-      time: '14:30',
-      points: [
-        { id: 1, name: 'Cliente A', address: 'Rua das Flores, 123' },
-        { id: 2, name: 'Cliente B', address: 'Av. Beira Mar, 456' },
-      ],
-      distance: '15.3 km',
-      duration: '42 min',
-      carbon: '3.2 kg CO₂',
-      status: 'Concluída'
-    },
-    {
-      id: 2,
-      name: 'Rota Messejana',
-      date: '10/01/2025',
-      time: '10:15',
-      points: [
-        { id: 1, name: 'Cliente C', address: 'Rua José Vilar, 789' },
-      ],
-      distance: '12.8 km',
-      duration: '35 min',
-      carbon: '2.5 kg CO₂',
-      status: 'Concluída'
-    }
-  ]);
-
+  const [routes, setRoutes] = useState([]);
   const [currentPoints, setCurrentPoints] = useState([]);
+  const [stats, setStats] = useState({
+    total_routes: 0,
+    total_distance: 0,
+    total_duration: 0,
+    total_carbon: 0
+  });
 
-  const login = (email, password) => {
-    setUser({
-      email: email,
-      name: 'Usuário Teste',
-      role: 'Operador'
-    });
-    return true;
+  useEffect(() => {
+    const loadUser = async () => {
+      try {
+        const userData = await authAPI.getCurrentUser();
+        setUser(userData);
+        await loadRoutes();
+        await loadStats();
+      } catch (error) {
+        console.error('Erro ao carregar usuário:', error);
+      }
+    };
+
+    loadUser();
+  }, []);
+
+  const loadRoutes = async () => {
+    try {
+      const routesData = await routesAPI.getAll();
+      setRoutes(routesData);
+    } catch (error) {
+      console.error('Erro ao carregar rotas:', error);
+    }
+  };
+
+  const loadStats = async () => {
+    try {
+      const statsData = await statsAPI.get();
+      setStats(statsData);
+    } catch (error) {
+      console.error('Erro ao carregar estatísticas:', error);
+    }
+  };
+
+  const login = async (email, password) => {
+    try {
+      const data = await authAPI.login(email, password);
+      setUser(data.user);
+      await loadRoutes();
+      await loadStats();
+      return true;
+    } catch (error) {
+      console.error('Erro no login:', error);
+      return false;
+    }
   };
 
   const logout = () => {
+    authAPI.logout();
     setUser(null);
+    setRoutes([]);
     setCurrentPoints([]);
+    setStats({
+      total_routes: 0,
+      total_distance: 0,
+      total_duration: 0,
+      total_carbon: 0
+    });
   };
 
   const addPoint = (point) => {
     const newPoint = {
-      id: Date.now(),
       name: point.name,
-      address: point.address
+      address: point.address,
+      latitude: point.latitude || null,
+      longitude: point.longitude || null
     };
     setCurrentPoints([...currentPoints, newPoint]);
   };
 
-  const removePoint = (pointId) => {
-    setCurrentPoints(currentPoints.filter(p => p.id !== pointId));
+  const removePoint = (pointIndex) => {
+    setCurrentPoints(currentPoints.filter((_, index) => index !== pointIndex));
   };
 
   const clearPoints = () => {
     setCurrentPoints([]);
   };
 
-  const saveRoute = (routeData) => {
-    const newRoute = {
-      id: Date.now(),
-      name: routeData.name || `Rota ${routes.length + 1}`,
-      date: new Date().toLocaleDateString('pt-BR'),
-      time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-      points: [...currentPoints],
-      distance: routeData.distance,
-      duration: routeData.duration,
-      carbon: routeData.carbon,
-      status: 'Concluída'
-    };
-    
-    setRoutes([newRoute, ...routes]);
-    setCurrentPoints([]);
-    return newRoute;
-  };
-
-  const deleteRoute = (routeId) => {
-    setRoutes(routes.filter(r => r.id !== routeId));
-  };
-
-  const calculateRoute = () => {
+  const calculateRoute = async () => {
     if (currentPoints.length < 2) {
       return null;
     }
 
-    const distance = (currentPoints.length * 5.1).toFixed(1);
-    const duration = (currentPoints.length * 14);
-    const carbon = (distance * 0.21).toFixed(1);
+    try {
+      const result = await routesAPI.calculate(currentPoints);
+      return {
+        optimized_points: result.optimized_points,
+        distance: `${result.total_distance} km`,
+        duration: `${result.total_duration} min`,
+        carbon: `${result.carbon_footprint} kg CO₂`,
+        total_distance: result.total_distance,
+        total_duration: result.total_duration,
+        carbon_footprint: result.carbon_footprint
+      };
+    } catch (error) {
+      console.error('Erro ao calcular rota:', error);
+      return null;
+    }
+  };
 
-    return {
-      distance: `${distance} km`,
-      duration: `${duration} min`,
-      carbon: `${carbon} kg CO₂`
-    };
+  const saveRoute = async (routeData) => {
+    try {
+      const dataToSend = {
+        name: routeData.name,
+        points: currentPoints
+      };
+
+      const response = await routesAPI.create(dataToSend);
+      
+      await loadRoutes();
+      await loadStats();
+      setCurrentPoints([]);
+      
+      return response.route;
+    } catch (error) {
+      console.error('Erro ao salvar rota:', error);
+      return null;
+    }
+  };
+
+  const deleteRoute = async (routeId) => {
+    try {
+      await routesAPI.delete(routeId);
+      await loadRoutes();
+      await loadStats();
+    } catch (error) {
+      console.error('Erro ao deletar rota:', error);
+    }
   };
 
   const value = {
     user,
     routes,
     currentPoints,
+    stats,
     login,
     logout,
     addPoint,

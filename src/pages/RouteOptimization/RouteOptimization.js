@@ -1,13 +1,37 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMapEvents } from 'react-leaflet';
 import { useApp } from '../../contexts/AppContext';
-import edit from '../../assets/images/edit-svgrepo-com.svg';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import remove from '../../assets/images/remove-svgrepo-com.svg';
-import map from '../../assets/images/map-location-pin-svgrepo-com.svg';
 import distance from '../../assets/images/distance-svgrepo-com.svg';
 import time from '../../assets/images/time-svgrepo-com.svg';
 import carbonFootprint from '../../assets/images/plant-svgrepo-com.svg';
 import clipboard from '../../assets/images/clipboard-text-svgrepo-com.svg';
 import './RouteOptimization.css';
+
+import icon from 'leaflet/dist/images/marker-icon.png';
+import iconShadow from 'leaflet/dist/images/marker-shadow.png';
+
+let DefaultIcon = L.icon({
+  iconUrl: icon,
+  shadowUrl: iconShadow,
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+});
+
+L.Marker.prototype.options.icon = DefaultIcon;
+
+const createNumberedIcon = (number) => {
+  return L.divIcon({
+    className: 'custom-marker',
+    html: `<div style="background-color: #2563eb; color: white; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">${number}</div>`,
+    iconSize: [32, 32],
+    iconAnchor: [16, 32],
+  });
+};
 
 function DeliveryPointForm({ onAdd }) {
   const [formData, setFormData] = useState({
@@ -66,36 +90,48 @@ function DeliveryPointForm({ onAdd }) {
   );
 }
 
-function DeliveryPointList({ points, onRemove, onCalculate }) {
+function DeliveryPointList({ points, onRemove, onCalculate, optimizedPoints }) {
+  const displayPoints = optimizedPoints.length > 0 ? optimizedPoints : points;
+  const isOptimized = optimizedPoints.length > 0;
+
   return (
     <div className="delivery-list">
-      <h3 className="section-title">Pontos de Entrega ({points.length})</h3>
-      {points.length === 0 ? (
+      <h3 className="section-title">
+        {isOptimized ? 'Rota Otimizada' : `Pontos de Entrega (${points.length})`}
+      </h3>
+      {displayPoints.length === 0 ? (
         <p className="empty-message">Nenhum ponto adicionado ainda.</p>
       ) : (
         <div className="points-list">
-          {points.map((point, index) => (
-            <div key={point.id} className="point-item">
-              <div className="point-order">{index + 1}</div>
+          {displayPoints.map((point, index) => (
+            <div key={index} className="point-item">
+              <div className="point-order">{isOptimized ? point.order : index + 1}</div>
               <div className="point-info">
                 <strong>{point.name}</strong>
                 <p className="point-address">{point.address}</p>
+                {point.latitude && point.longitude && (
+                  <small style={{color: '#666', fontSize: '11px'}}>
+                    {point.latitude.toFixed(4)}, {point.longitude.toFixed(4)}
+                  </small>
+                )}
               </div>
-              <div className="point-actions">
-                <button 
-                  className="btn-icon" 
-                  title="Remover"
-                  onClick={() => onRemove(point.id)}
-                >
-                  <img className="btn-icon-img" src={remove} alt="Remover" />
-                </button>
-              </div>
+              {!isOptimized && (
+                <div className="point-actions">
+                  <button 
+                    className="btn-icon" 
+                    title="Remover"
+                    onClick={() => onRemove(index)}
+                  >
+                    <img className="btn-icon-img" src={remove} alt="Remover" />
+                  </button>
+                </div>
+              )}
             </div>
           ))}
         </div>
       )}
       
-      {points.length >= 2 && (
+      {points.length >= 2 && !isOptimized && (
         <button className="btn-primary btn-full" onClick={onCalculate}>
           Calcular Rota Otimizada
         </button>
@@ -104,13 +140,95 @@ function DeliveryPointList({ points, onRemove, onCalculate }) {
   );
 }
 
-function MapView() {
+function MapClickHandler({ onMapClick, enabled }) {
+  useMapEvents({
+    click: (e) => {
+      if (enabled) {
+        onMapClick(e.latlng);
+      }
+    },
+  });
+  return null;
+}
+
+function InteractiveMap({ points, optimizedPoints, onMapClick }) {
+  const displayPoints = optimizedPoints.length > 0 ? optimizedPoints : points;
+  const isOptimized = optimizedPoints.length > 0;
+  const [key, setKey] = useState(0);
+
+  // Atualiza o mapa quando os pontos mudam
+  useEffect(() => {
+    setKey(prev => prev + 1);
+  }, [displayPoints.length]);
+
+  const defaultCenter = [-15.7939, -47.8828];
+  const defaultZoom = 4;
+
+  const mapCenter = displayPoints.length > 0 && displayPoints[0].latitude
+    ? [displayPoints[0].latitude, displayPoints[0].longitude]
+    : defaultCenter;
+
+  const mapZoom = displayPoints.length > 0 ? 13 : defaultZoom;
+
+  const routeCoordinates = displayPoints
+    .filter(p => p.latitude && p.longitude)
+    .map(p => [p.latitude, p.longitude]);
+
   return (
-    <div className="map-container">
-      <div className="map-placeholder">
-        <img className="map-icon" src={map} alt="Mapa" />
-        <p className="map-text">Mapa Interativo</p>
-        <small className="map-subtext">A rota otimizada será exibida aqui</small>
+    <div className="map-container-real">
+      <MapContainer 
+        key={key}
+        center={mapCenter} 
+        zoom={mapZoom} 
+        style={{ height: '100%', width: '100%', borderRadius: '8px' }}
+      >
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+        
+        <MapClickHandler onMapClick={onMapClick} enabled={!isOptimized} />
+
+        {displayPoints.map((point, index) => {
+          if (!point.latitude || !point.longitude) return null;
+          
+          const markerIcon = isOptimized ? createNumberedIcon(point.order) : DefaultIcon;
+          
+          return (
+            <Marker
+              key={`${index}-${point.latitude}-${point.longitude}`}
+              position={[point.latitude, point.longitude]}
+              icon={markerIcon}
+            >
+              <Popup>
+                <div style={{minWidth: '200px'}}>
+                  <strong>{point.name}</strong>
+                  <p style={{margin: '5px 0', fontSize: '12px'}}>{point.address}</p>
+                  {isOptimized && (
+                    <small style={{color: '#2563eb'}}>
+                      Parada #{point.order}
+                    </small>
+                  )}
+                </div>
+              </Popup>
+            </Marker>
+          );
+        })}
+
+        {isOptimized && routeCoordinates.length > 1 && (
+          <Polyline
+            positions={routeCoordinates}
+            color="#2563eb"
+            weight={4}
+            opacity={0.7}
+          />
+        )}
+      </MapContainer>
+      
+      <div className="map-instructions">
+        {isOptimized 
+          ? 'Rota otimizada exibida no mapa'
+          : 'Clique no mapa para adicionar pontos rapidamente'}
       </div>
     </div>
   );
@@ -197,41 +315,101 @@ export default function RouteOptimization({ onNavigate }) {
     duration: '--',
     carbon: '--'
   });
+  const [optimizedPoints, setOptimizedPoints] = useState([]);
+  const [isCalculating, setIsCalculating] = useState(false);
 
   const handleAddPoint = (point) => {
     addPoint(point);
+    setOptimizedPoints([]);
   };
 
-  const handleRemovePoint = (pointId) => {
+  const handleRemovePoint = (pointIndex) => {
     if (window.confirm('Deseja remover este ponto?')) {
-      removePoint(pointId);
-      if (currentPoints.length > 2) {
-        const newInfo = calculateRoute();
-        if (newInfo) setRouteInfo(newInfo);
+      removePoint(pointIndex);
+      setOptimizedPoints([]);
+      setRouteInfo({ distance: '--', duration: '--', carbon: '--' });
+    }
+  };
+
+  const handleMapClick = async (latlng) => {
+    const pointName = prompt('Nome do local:', `Ponto ${currentPoints.length + 1}`);
+    if (!pointName) return;
+
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?lat=${latlng.lat}&lon=${latlng.lng}&format=json`,
+        {
+          headers: {
+            'User-Agent': 'RouteOptimizationSystem/1.0'
+          }
+        }
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        const address = data.display_name || `${latlng.lat.toFixed(4)}, ${latlng.lng.toFixed(4)}`;
+
+        addPoint({
+          name: pointName,
+          address: address,
+          latitude: latlng.lat,
+          longitude: latlng.lng
+        });
+        
+        setOptimizedPoints([]);
       } else {
-        setRouteInfo({ distance: '--', duration: '--', carbon: '--' });
+        throw new Error('Erro na API');
       }
+    } catch (error) {
+      console.error('Erro ao buscar endereço:', error);
+      
+      const address = `${latlng.lat.toFixed(4)}, ${latlng.lng.toFixed(4)}`;
+      addPoint({
+        name: pointName,
+        address: address,
+        latitude: latlng.lat,
+        longitude: latlng.lng
+      });
+      
+      setOptimizedPoints([]);
     }
   };
 
-  const handleCalculate = () => {
-    const info = calculateRoute();
-    if (info) {
-      setRouteInfo(info);
-      alert('Rota calculada com sucesso!');
+  const handleCalculate = async () => {
+    setIsCalculating(true);
+    
+    try {
+      const result = await calculateRoute();
+      
+      if (result && result.optimized_points) {
+        setRouteInfo({
+          distance: result.distance,
+          duration: result.duration,
+          carbon: result.carbon
+        });
+        setOptimizedPoints(result.optimized_points);
+        alert('Rota calculada e otimizada com sucesso!');
+      } else {
+        alert('Erro ao calcular rota! Verifique o console do navegador e do Flask.');
+      }
+    } catch (error) {
+      console.error('Erro ao calcular:', error);
+      alert('Erro ao calcular rota! Detalhes: ' + error.message);
+    } finally {
+      setIsCalculating(false);
     }
   };
 
-  const handleSaveRoute = (routeName) => {
-    const savedRoute = saveRoute({
-      name: routeName,
-      ...routeInfo
-    });
+  const handleSaveRoute = async (routeName) => {
+    const savedRoute = await saveRoute({ name: routeName });
     
     if (savedRoute) {
       alert('Rota salva com sucesso!');
       setRouteInfo({ distance: '--', duration: '--', carbon: '--' });
+      setOptimizedPoints([]);
       onNavigate('history');
+    } else {
+      alert('Erro ao salvar rota!');
     }
   };
 
@@ -246,7 +424,7 @@ export default function RouteOptimization({ onNavigate }) {
         </button>
         <div className="header-center">
           <h1 className="page-title">Otimização de Rotas</h1>
-          <p className="page-subtitle">Adicione pontos de entrega e otimize sua rota</p>
+          <p className="page-subtitle">Adicione pontos e otimize sua rota</p>
         </div>
         <button 
           className="btn-history" 
@@ -263,21 +441,51 @@ export default function RouteOptimization({ onNavigate }) {
             <DeliveryPointForm onAdd={handleAddPoint} />
             <DeliveryPointList 
               points={currentPoints}
+              optimizedPoints={optimizedPoints}
               onRemove={handleRemovePoint}
               onCalculate={handleCalculate}
             />
           </div>
           
           <div className="right-panel">
-            <MapView />
+            <InteractiveMap 
+              points={currentPoints}
+              optimizedPoints={optimizedPoints}
+              onMapClick={handleMapClick}
+            />
             <RouteInfo 
               info={routeInfo}
-              hasPoints={currentPoints.length >= 2}
+              hasPoints={optimizedPoints.length > 0}
               onSave={handleSaveRoute}
             />
           </div>
         </div>
       </div>
+
+      {isCalculating && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999
+        }}>
+          <div style={{
+            background: 'white',
+            padding: '30px',
+            borderRadius: '8px',
+            textAlign: 'center'
+          }}>
+            <h3>Calculando rota...</h3>
+            <p>Geocodificando endereços e otimizando percurso</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

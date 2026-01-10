@@ -4,19 +4,19 @@ import graph from '../../assets/images/graph-svgrepo-com.svg';
 import distance from '../../assets/images/distance-svgrepo-com.svg';
 import time from '../../assets/images/time-svgrepo-com.svg';
 import carbonFootprint from '../../assets/images/plant-svgrepo-com.svg';
-import pinpoint from '../../assets/images/pinpoint-svgrepo-com.svg'
-import eye from '../../assets/images/eye-svgrepo-com.svg'
-import clipboard from '../../assets/images/clipboard-text-svgrepo-com.svg'
-import remove from '../../assets/images/remove-svgrepo-com.svg'
+import pinpoint from '../../assets/images/pinpoint-svgrepo-com.svg';
+import eye from '../../assets/images/eye-svgrepo-com.svg';
+import clipboard from '../../assets/images/clipboard-text-svgrepo-com.svg';
+import remove from '../../assets/images/remove-svgrepo-com.svg';
 import './RouteHistory.css';
 
 export default function RouteHistory({ onNavigate }) {
-  const { routes, deleteRoute } = useApp();
+  const { routes, deleteRoute, stats } = useApp();
   const [selectedRoute, setSelectedRoute] = useState(null);
 
-  const handleDelete = (routeId) => {
+  const handleDelete = async (routeId) => {
     if (window.confirm('Deseja realmente excluir esta rota?')) {
-      deleteRoute(routeId);
+      await deleteRoute(routeId);
       alert('Rota excluída com sucesso!');
     }
   };
@@ -25,17 +25,11 @@ export default function RouteHistory({ onNavigate }) {
     setSelectedRoute(selectedRoute?.id === route.id ? null : route);
   };
 
-  const totals = routes.reduce((acc, route) => {
-    const distance = parseFloat(route.distance) || 0;
-    const duration = parseInt(route.duration) || 0;
-    const carbon = parseFloat(route.carbon) || 0;
-    
-    return {
-      distance: acc.distance + distance,
-      duration: acc.duration + duration,
-      carbon: acc.carbon + carbon
-    };
-  }, { distance: 0, duration: 0, carbon: 0 });
+  const totals = {
+    distance: stats.total_distance || 0,
+    duration: stats.total_duration || 0,
+    carbon: stats.total_carbon || 0
+  };
 
   return (
     <div className="history-page">
@@ -78,7 +72,7 @@ export default function RouteHistory({ onNavigate }) {
           <div className="summary-card">
             <img className="summary-icon" src={carbonFootprint} alt="Pegada de Carbono" />
             <div>
-              <p className="summary-label">Carbono Economizado</p>
+              <p className="summary-label">Carbono Total</p>
               <p className="summary-value">{totals.carbon.toFixed(1)} kg CO₂</p>
             </div>
           </div>
@@ -118,7 +112,7 @@ export default function RouteHistory({ onNavigate }) {
                     <img className="detail-icon" src={distance} alt="Distância" />
                     <div>
                       <p className="detail-label">Distância</p>
-                      <p className="detail-value">{route.distance}</p>
+                      <p className="detail-value">{route.distance} km</p>
                     </div>
                   </div>
 
@@ -126,7 +120,7 @@ export default function RouteHistory({ onNavigate }) {
                     <img className="detail-icon" src={time} alt="Duração" />
                     <div>
                       <p className="detail-label">Duração</p>
-                      <p className="detail-value">{route.duration}</p>
+                      <p className="detail-value">{route.duration} min</p>
                     </div>
                   </div>
 
@@ -134,7 +128,7 @@ export default function RouteHistory({ onNavigate }) {
                     <img className="detail-icon" src={carbonFootprint} alt="Pegada de Carbono" />
                     <div>
                       <p className="detail-label">Carbono</p>
-                      <p className="detail-value">{route.carbon}</p>
+                      <p className="detail-value">{route.carbon_footprint} kg CO₂</p>
                     </div>
                   </div>
                 </div>
@@ -143,7 +137,7 @@ export default function RouteHistory({ onNavigate }) {
                   <div className="route-points">
                     <h4>Pontos de Parada:</h4>
                     <ol>
-                      {route.points.map((point, index) => (
+                      {route.points.map((point) => (
                         <li key={point.id}>
                           <strong>{point.name}</strong> - {point.address}
                         </li>
@@ -157,7 +151,8 @@ export default function RouteHistory({ onNavigate }) {
                     className="btn-view"
                     onClick={() => handleViewDetails(route)}
                   >
-                    <img className="btn-icon" src={eye} alt="Ver Detalhes" /> {selectedRoute?.id === route.id ? 'Ocultar' : 'Ver Detalhes'}
+                    <img className="btn-icon" src={eye} alt="Ver Detalhes" /> 
+                    {selectedRoute?.id === route.id ? 'Ocultar' : 'Ver Detalhes'}
                   </button>
                   <button 
                     className="btn-delete"

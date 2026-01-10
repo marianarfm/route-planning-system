@@ -10,8 +10,8 @@ export default function Login() {
     password: ''
   });
   
-  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -22,7 +22,7 @@ export default function Login() {
     setError('');
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!formData.email.trim() || !formData.password.trim()) {
       setError('Por favor, preencha todos os campos.');
       return;
@@ -38,7 +38,9 @@ export default function Login() {
       return;
     }
 
-    const success = login(formData.email, formData.password);
+    setIsLoading(true);
+    const success = await login(formData.email, formData.password);
+    setIsLoading(false);
     
     if (!success) {
       setError('E-mail ou senha incorretos.');
@@ -76,6 +78,7 @@ export default function Login() {
               value={formData.email}
               onChange={handleInputChange}
               onKeyPress={handleKeyPress}
+              disabled={isLoading}
             />
           </div>
 
@@ -89,32 +92,17 @@ export default function Login() {
               value={formData.password}
               onChange={handleInputChange}
               onKeyPress={handleKeyPress}
+              disabled={isLoading}
             />
           </div>
 
-          <div className="form-options">
-            <label className="checkbox-label">
-              <input
-                type="checkbox"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-              />
-              <span>Lembrar-me</span>
-            </label>
-            <a href="#forgot" className="link">Esqueci minha senha</a>
-          </div>
-
-          <button className="btn-primary btn-full" onClick={handleSubmit}>
-            Entrar
+          <button 
+            className="btn-primary btn-full" 
+            onClick={handleSubmit}
+            disabled={isLoading}
+          >
+            {isLoading ? 'Entrando...' : 'Entrar'}
           </button>
-
-          <div className="divider">
-            <span>ou</span>
-          </div>
-
-          <p className="register-text">
-            Não tem uma conta? <a href="#register" className="link">Cadastre-se</a>
-          </p>
         </div>
 
         <footer className="login-footer">

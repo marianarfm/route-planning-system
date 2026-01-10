@@ -11,13 +11,17 @@ import check from '../../assets/images/check-circle-svgrepo-com.svg';
 import './Dashboard.css';
 
 export default function Dashboard({ onLogout, onNavigate }) {
-  const { routes } = useApp();
+  const { routes, stats } = useApp();
 
-  const stats = {
-    totalRoutes: routes.length,
-    routesToday: routes.filter(r => r.date === new Date().toLocaleDateString('pt-BR')).length,
-    totalDistance: routes.reduce((acc, r) => acc + (parseFloat(r.distance) || 0), 0).toFixed(1),
-    carbonSaved: routes.reduce((acc, r) => acc + (parseFloat(r.carbon) || 0), 0).toFixed(1)
+  const dashboardStats = {
+    totalRoutes: stats.total_routes || 0,
+    routesToday: routes.filter(r => {
+      const routeDate = new Date(r.created_at).toLocaleDateString('pt-BR');
+      const today = new Date().toLocaleDateString('pt-BR');
+      return routeDate === today;
+    }).length,
+    totalDistance: stats.total_distance || 0,
+    carbonSaved: stats.total_carbon || 0
   };
 
   const recentRoutes = routes.slice(0, 3);
@@ -47,7 +51,7 @@ export default function Dashboard({ onLogout, onNavigate }) {
             <img className="stat-icon" src={graph} alt="Gráfico" />
             <div className="stat-info">
               <p className="stat-label">Total de Rotas</p>
-              <p className="stat-value">{stats.totalRoutes}</p>
+              <p className="stat-value">{dashboardStats.totalRoutes}</p>
             </div>
           </div>
 
@@ -55,7 +59,7 @@ export default function Dashboard({ onLogout, onNavigate }) {
             <img className="stat-icon" src={rocket} alt="Rotas" />
             <div className="stat-info">
               <p className="stat-label">Rotas Hoje</p>
-              <p className="stat-value">{stats.routesToday}</p>
+              <p className="stat-value">{dashboardStats.routesToday}</p>
             </div>
           </div>
 
@@ -63,7 +67,7 @@ export default function Dashboard({ onLogout, onNavigate }) {
             <img className="stat-icon" src={distance} alt="Distância" />
             <div className="stat-info">
               <p className="stat-label">Distância Total</p>
-              <p className="stat-value">{stats.totalDistance} km</p>
+              <p className="stat-value">{dashboardStats.totalDistance.toFixed(1)} km</p>
             </div>
           </div>
 
@@ -71,7 +75,7 @@ export default function Dashboard({ onLogout, onNavigate }) {
             <img className="stat-icon" src={carbonFootprint} alt="Pegada de Carbono" />
             <div className="stat-info">
               <p className="stat-label">Carbono Economizado</p>
-              <p className="stat-value">{stats.carbonSaved} kg CO₂</p>
+              <p className="stat-value">{dashboardStats.carbonSaved.toFixed(1)} kg CO₂</p>
             </div>
           </div>
         </div>
@@ -113,7 +117,7 @@ export default function Dashboard({ onLogout, onNavigate }) {
                       <p className="recent-name">{route.name}</p>
                       <p className="recent-date">{route.date}, {route.time}</p>
                     </div>
-                    <span className="recent-distance">{route.distance}</span>
+                    <span className="recent-distance">{route.distance} km</span>
                   </div>
                 ))}
               </div>
