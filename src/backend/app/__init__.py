@@ -13,7 +13,16 @@ def create_app():
     
     db.init_app(app)
     jwt.init_app(app)
-    CORS(app)
+    
+    CORS(app, resources={
+        r"/api/*": {
+            "origins": ["http://localhost:3000"],
+            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+            "allow_headers": ["Content-Type", "Authorization"],
+            "expose_headers": ["Content-Type", "Authorization"],
+            "supports_credentials": True
+        }
+    })
     
     from app.routes import api
     app.register_blueprint(api, url_prefix='/api')
@@ -32,9 +41,26 @@ def create_app():
             db.session.add(admin)
             db.session.commit()
             print('Usuário admin criado: admin@admin.com / admin123')
+        else:
+            print('Usuário admin já existe')
     
     @app.route('/')
     def index():
         return {'message': 'API do Sistema de Rotas está rodando'}
+    
+    @jwt.invalid_token_loader
+    def invalid_token_callback(error):
+        print(f'Token inválido: {error}')
+        return {'error': 'Token inválido', 'msg': str(error)}, 401
+    
+    @jwt.unauthorized_loader
+    def unauthorized_callback(error):
+        print(f'Authorization header ausente: {error}')
+        return {'error': 'Authorization header ausente', 'msg': str(error)}, 401
+    
+    @jwt.expired_token_loader
+    def expired_token_callback(jwt_header, jwt_payload):
+        print(f'Token expirado')
+        return {'error': 'Token expirado'}, 401
     
     return app

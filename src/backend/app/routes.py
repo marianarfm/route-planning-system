@@ -52,7 +52,7 @@ def login():
     if not user or not user.check_password(data['password']):
         return jsonify({'error': 'Email ou senha incorretos'}), 401
     
-    access_token = create_access_token(identity=user.id)
+    access_token = create_access_token(identity=str(user.id))
     
     return jsonify({
         'message': 'Login realizado com sucesso',
@@ -64,7 +64,7 @@ def login():
 @api.route('/auth/me', methods=['GET'])
 @jwt_required()
 def get_current_user():
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     user = User.query.get(user_id)
     
     if not user:
@@ -75,7 +75,7 @@ def get_current_user():
 @api.route('/routes', methods=['GET'])
 @jwt_required()
 def get_routes():
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     routes = Route.query.filter_by(user_id=user_id).order_by(Route.created_at.desc()).all()
     
     return jsonify([route.to_dict() for route in routes]), 200
@@ -84,7 +84,7 @@ def get_routes():
 @api.route('/routes/<int:route_id>', methods=['GET'])
 @jwt_required()
 def get_route(route_id):
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     route = Route.query.filter_by(id=route_id, user_id=user_id).first()
     
     if not route:
@@ -109,7 +109,7 @@ def calculate_route():
 @api.route('/routes', methods=['POST'])
 @jwt_required()
 def create_route():
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     data = request.get_json()
     
     if not data.get('name'):
@@ -137,7 +137,9 @@ def create_route():
             route_id=route.id,
             name=point_data['name'],
             address=point_data['address'],
-            order=point_data['order']
+            order=point_data['order'],
+            latitude=point_data.get('latitude'),
+            longitude=point_data.get('longitude')
         )
         db.session.add(point)
     
@@ -152,7 +154,7 @@ def create_route():
 @api.route('/routes/<int:route_id>', methods=['DELETE'])
 @jwt_required()
 def delete_route(route_id):
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())  # Converte de volta para int
     route = Route.query.filter_by(id=route_id, user_id=user_id).first()
     
     if not route:
@@ -169,7 +171,7 @@ def delete_route(route_id):
 @api.route('/stats', methods=['GET'])
 @jwt_required()
 def get_stats():
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     routes = Route.query.filter_by(user_id=user_id).all()
     
     total_routes = len(routes)

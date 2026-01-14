@@ -1,11 +1,9 @@
 const API_BASE_URL = 'http://localhost:5000/api';
 
-// Helper para gerenciar o token
 const getToken = () => localStorage.getItem('token');
 const setToken = (token) => localStorage.setItem('token', token);
 const removeToken = () => localStorage.removeItem('token');
 
-// Helper para fazer requisições
 const fetchAPI = async (endpoint, options = {}) => {
   const token = getToken();
   
@@ -18,8 +16,12 @@ const fetchAPI = async (endpoint, options = {}) => {
     },
   };
 
-  console.log('Fazendo requisição para:', `${API_BASE_URL}${endpoint}`);
-  console.log('Com dados:', options.body);
+  console.log('=== DEBUG API ===');
+  console.log('Endpoint:', `${API_BASE_URL}${endpoint}`);
+  console.log('Token existe?', token ? 'SIM' : 'NÃO');
+  console.log('Token:', token ? token.substring(0, 20) + '...' : 'null');
+  console.log('Headers:', config.headers);
+  console.log('Body:', options.body);
 
   const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
   const data = await response.json();
@@ -28,7 +30,9 @@ const fetchAPI = async (endpoint, options = {}) => {
 
   if (!response.ok) {
     console.error('Erro na API:', data);
-    throw new Error(data.error || 'Erro na requisição');
+    console.error('Status da resposta:', response.status);
+    
+    throw new Error(data.error || data.msg || 'Erro na requisição');
   }
 
   return data;
@@ -53,9 +57,19 @@ export const authAPI = {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
+    
+    console.log('=== RESPOSTA DO LOGIN ===');
+    console.log('Token recebido?', data.access_token ? 'SIM' : 'NÃO');
+    console.log('Token:', data.access_token);
+    
     if (data.access_token) {
       setToken(data.access_token);
+      console.log('Token SALVO no localStorage');
+      console.log('Verificando se salvou:', localStorage.getItem('token') ? 'SIM' : 'NÃO');
+    } else {
+      console.error('ERRO: Token não veio na resposta!');
     }
+    
     return data;
   },
 

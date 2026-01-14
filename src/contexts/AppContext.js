@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { authAPI, routesAPI, statsAPI } from '../services/api';
+import { authAPI, routesAPI, statsAPI, getToken } from '../services/api';
 
 const AppContext = createContext();
 
@@ -21,9 +21,17 @@ export const AppProvider = ({ children }) => {
     total_duration: 0,
     total_carbon: 0
   });
+  const [isLoadingUser, setIsLoadingUser] = useState(true);
 
   useEffect(() => {
     const loadUser = async () => {
+      const token = getToken();
+      
+      if (!token) {
+        setIsLoadingUser(false);
+        return;
+      }
+
       try {
         const userData = await authAPI.getCurrentUser();
         setUser(userData);
@@ -31,6 +39,9 @@ export const AppProvider = ({ children }) => {
         await loadStats();
       } catch (error) {
         console.error('Erro ao carregar usuário:', error);
+        authAPI.logout();
+      } finally {
+        setIsLoadingUser(false);
       }
     };
 
@@ -156,6 +167,7 @@ export const AppProvider = ({ children }) => {
     routes,
     currentPoints,
     stats,
+    isLoadingUser,
     login,
     logout,
     addPoint,

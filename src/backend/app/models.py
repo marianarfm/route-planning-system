@@ -42,7 +42,6 @@ class Route(db.Model):
     status = db.Column(db.String(20), default='completed')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
-    # Relacionamento
     points = db.relationship('DeliveryPoint', backref='route', lazy=True, cascade='all, delete-orphan')
     
     def to_dict(self):

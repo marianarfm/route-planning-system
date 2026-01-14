@@ -4,15 +4,9 @@ import requests
 import time
 
 def geocode_address(address):
-    """
-    Busca coordenadas reais usando Nominatim (OpenStreetMap)
-    Retorna (latitude, longitude) ou None se não encontrar
-    """
     try:
-        # URL da API Nominatim
         url = "https://nominatim.openstreetmap.org/search"
         
-        # Parâmetros da requisição
         params = {
             'q': address,
             'format': 'json',
@@ -20,15 +14,12 @@ def geocode_address(address):
             'addressdetails': 1
         }
         
-        # Headers obrigatórios (Nominatim exige User-Agent)
         headers = {
             'User-Agent': 'RouteOptimizationSystem/1.0'
         }
         
-        # Faz a requisição
         response = requests.get(url, params=params, headers=headers, timeout=5)
         
-        # Pausa de 1 segundo entre requisições (política de uso justo do Nominatim)
         time.sleep(1)
         
         if response.status_code == 200:
@@ -39,24 +30,18 @@ def geocode_address(address):
                 lon = float(data[0]['lon'])
                 return lat, lon
         
-        # Se não encontrou, retorna coordenadas mockadas
         return generate_mock_coordinates(address)
     
     except Exception as e:
         print(f"Erro ao geocodificar '{address}': {e}")
-        # Em caso de erro, usa coordenadas mockadas
         return generate_mock_coordinates(address)
 
 
 def generate_mock_coordinates(address):
-    """Gera coordenadas mockadas baseadas no hash do endereço (fallback)"""
     hash_value = int(hashlib.md5(address.encode()).hexdigest(), 16)
-    
-    # Fortaleza/CE como região base: lat -3.7, lng -38.5
     base_lat = -3.7
     base_lng = -38.5
     
-    # Adiciona variação baseada no hash (±0.1 graus = ~11km)
     lat_offset = ((hash_value % 2000) - 1000) / 10000
     lng_offset = (((hash_value // 2000) % 2000) - 1000) / 10000
     
@@ -67,8 +52,7 @@ def generate_mock_coordinates(address):
 
 
 def calculate_distance_coordinates(lat1, lon1, lat2, lon2):
-    """Calcula distância real entre duas coordenadas usando a fórmula de Haversine"""
-    R = 6371  # Raio da Terra em km
+    R = 6371
     
     lat1_rad = math.radians(lat1)
     lat2_rad = math.radians(lat2)
@@ -83,8 +67,6 @@ def calculate_distance_coordinates(lat1, lon1, lat2, lon2):
 
 
 def calculate_distance(point1, point2):
-    """Calcula distância entre dois pontos"""
-    # Se os pontos têm coordenadas, usa cálculo real
     if (point1.get('latitude') and point1.get('longitude') and 
         point2.get('latitude') and point2.get('longitude')):
         return calculate_distance_coordinates(
@@ -92,12 +74,10 @@ def calculate_distance(point1, point2):
             point2['latitude'], point2['longitude']
         )
     
-    # Caso contrário, usa método simplificado baseado no hash
     return round(5.0 + (abs(hash(point1['address']) - hash(point2['address'])) % 10), 1)
 
 
 def optimize_route(points):
-    """Otimiza a rota usando algoritmo nearest neighbor com geocoding real"""
     if len(points) < 2:
         return {
             'optimized_points': points,
@@ -106,7 +86,6 @@ def optimize_route(points):
             'carbon_footprint': 0
         }
     
-    # Adiciona coordenadas a cada ponto (usando Nominatim ou fallback)
     print(f"Geocodificando {len(points)} pontos...")
     for i, point in enumerate(points):
         if not point.get('latitude') or not point.get('longitude'):
@@ -116,17 +95,14 @@ def optimize_route(points):
             point['longitude'] = lng
             print(f"      → Coordenadas: ({lat}, {lng})")
     
-    # Copia os pontos para não modificar o original
     remaining = points.copy()
     optimized = []
     
-    # Começa com o primeiro ponto
     current = remaining.pop(0)
     optimized.append(current)
     
     total_distance = 0
     
-    # Algoritmo nearest neighbor: sempre vai para o ponto mais próximo
     print("Otimizando rota...")
     while remaining:
         nearest = min(remaining, key=lambda p: calculate_distance(current, p))
@@ -137,14 +113,11 @@ def optimize_route(points):
         remaining.remove(nearest)
         current = nearest
     
-    # Adiciona a ordem aos pontos
     for i, point in enumerate(optimized):
         point['order'] = i + 1
     
-    # Calcula duração estimada (velocidade média 50 km/h + 5 min por parada)
     total_duration = int((total_distance / 50) * 60) + (len(points) * 5)
     
-    # Calcula pegada de carbono (0.21 kg CO2 por km - veículo médio)
     carbon_footprint = round(total_distance * 0.21, 2)
     
     print(f"Rota otimizada: {total_distance} km, {total_duration} min, {carbon_footprint} kg CO2")
