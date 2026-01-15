@@ -132,12 +132,18 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  const saveRoute = async (routeData) => {
+  const saveRoute = async (routeData, optimizedPoints = null, routeStats = null) => {
     try {
       const dataToSend = {
         name: routeData.name,
-        points: currentPoints
+        points: optimizedPoints || currentPoints
       };
+
+      if (routeStats) {
+        dataToSend.total_distance = routeStats.total_distance;
+        dataToSend.total_duration = routeStats.total_duration;
+        dataToSend.carbon_footprint = routeStats.carbon_footprint;
+      }
 
       const response = await routesAPI.create(dataToSend);
       

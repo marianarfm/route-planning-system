@@ -118,21 +118,38 @@ def create_route():
     if not data.get('points') or len(data['points']) < 2:
         return jsonify({'error': 'Mínimo de 2 pontos necessários'}), 400
     
-    optimization = optimize_route(data['points'])
+    if (data.get('total_distance') is not None and 
+        data.get('total_duration') is not None and 
+        data.get('carbon_footprint') is not None):
+        
+        total_distance = data['total_distance']
+        total_duration = data['total_duration']
+        carbon_footprint = data['carbon_footprint']
+        optimized_points = data['points']
+        
+        print(f"Usando estatísticas do frontend: {total_distance}km, {total_duration}min")
+    else:
+        optimization = optimize_route(data['points'])
+        total_distance = optimization['total_distance']
+        total_duration = optimization['total_duration']
+        carbon_footprint = optimization['carbon_footprint']
+        optimized_points = optimization['optimized_points']
+        
+        print(f"Calculando no backend: {total_distance}km, {total_duration}min")
     
     route = Route(
         user_id=user_id,
         name=data['name'],
-        distance=optimization['total_distance'],
-        duration=optimization['total_duration'],
-        carbon_footprint=optimization['carbon_footprint'],
+        distance=total_distance,
+        duration=total_duration,
+        carbon_footprint=carbon_footprint,
         status='completed'
     )
     
     db.session.add(route)
     db.session.flush()
     
-    for point_data in optimization['optimized_points']:
+    for point_data in optimized_points:
         point = DeliveryPoint(
             route_id=route.id,
             name=point_data['name'],

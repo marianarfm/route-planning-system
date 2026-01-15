@@ -345,6 +345,7 @@ export default function RouteOptimization({ onNavigate }) {
   const [routeGeometry, setRouteGeometry] = useState([]);
   const [isCalculating, setIsCalculating] = useState(false);
   const [isLoadingRoute, setIsLoadingRoute] = useState(false);
+  const [calculatedStats, setCalculatedStats] = useState(null);
 
   const handleAddPoint = (point) => {
     addPoint(point);
@@ -367,6 +368,7 @@ export default function RouteOptimization({ onNavigate }) {
       setOptimizedPoints([]);
       setRouteGeometry([]);
       setRouteInfo({ distance: '--', duration: '--', carbon: '--' });
+      setCalculatedStats(null);
     }
   };
 
@@ -436,15 +438,30 @@ export default function RouteOptimization({ onNavigate }) {
         if (routeData && routeData.geometry) {
           setRouteGeometry(routeData.geometry);
           
+          const realStats = {
+            total_distance: routeData.distance,
+            total_duration: routeData.duration,
+            carbon_footprint: parseFloat((routeData.distance * 0.21).toFixed(1))
+          };
+          
+          setCalculatedStats(realStats);
+          
           setRouteInfo({
             distance: `${routeData.distance} km`,
             duration: `${routeData.duration} min`,
-            carbon: `${(routeData.distance * 0.21).toFixed(1)} kg CO₂`
+            carbon: `${realStats.carbon_footprint} kg CO₂`
           });
           
           alert('Rota calculada com sucesso usando dados reais do GraphHopper!');
         } else {
           setRouteGeometry(result.optimized_points.map(p => [p.latitude, p.longitude]));
+          
+          setCalculatedStats({
+            total_distance: result.total_distance,
+            total_duration: result.total_duration,
+            carbon_footprint: result.carbon_footprint
+          });
+          
           alert('Rota calculada! (Usando estimativa - configure GraphHopper para rotas reais)');
         }
         
@@ -461,13 +478,18 @@ export default function RouteOptimization({ onNavigate }) {
   };
 
   const handleSaveRoute = async (routeName) => {
-    const savedRoute = await saveRoute({ name: routeName });
+    const savedRoute = await saveRoute(
+      { name: routeName }, 
+      optimizedPoints,
+      calculatedStats
+    );
     
     if (savedRoute) {
       alert('Rota salva com sucesso!');
       setRouteInfo({ distance: '--', duration: '--', carbon: '--' });
       setOptimizedPoints([]);
       setRouteGeometry([]);
+      setCalculatedStats(null);
       onNavigate('history');
     } else {
       alert('Erro ao salvar rota!');
