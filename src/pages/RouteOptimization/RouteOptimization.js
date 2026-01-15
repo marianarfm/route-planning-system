@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMapEvents } from 'react-leaflet';
 import { useApp } from '../../contexts/AppContext';
+import { calculateRealRoute, isGraphHopperConfigured } from '../../services/graphhopper';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import remove from '../../assets/images/remove-svgrepo-com.svg';
@@ -151,12 +152,11 @@ function MapClickHandler({ onMapClick, enabled }) {
   return null;
 }
 
-function InteractiveMap({ points, optimizedPoints, onMapClick }) {
+function InteractiveMap({ points, optimizedPoints, onMapClick, routeGeometry, isLoadingRoute }) {
   const displayPoints = optimizedPoints.length > 0 ? optimizedPoints : points;
   const isOptimized = optimizedPoints.length > 0;
   const [key, setKey] = useState(0);
 
-  // Atualiza o mapa quando os pontos mudam
   useEffect(() => {
     setKey(prev => prev + 1);
   }, [displayPoints.length]);
@@ -170,9 +170,7 @@ function InteractiveMap({ points, optimizedPoints, onMapClick }) {
 
   const mapZoom = displayPoints.length > 0 ? 13 : defaultZoom;
 
-  const routeCoordinates = displayPoints
-    .filter(p => p.latitude && p.longitude)
-    .map(p => [p.latitude, p.longitude]);
+  const graphhopperConfigured = isGraphHopperConfigured();
 
   return (
     <div className="map-container-real">
@@ -215,9 +213,9 @@ function InteractiveMap({ points, optimizedPoints, onMapClick }) {
           );
         })}
 
-        {isOptimized && routeCoordinates.length > 1 && (
+        {isOptimized && routeGeometry.length > 1 && (
           <Polyline
-            positions={routeCoordinates}
+            positions={routeGeometry}
             color="#2563eb"
             weight={4}
             opacity={0.7}
@@ -226,9 +224,15 @@ function InteractiveMap({ points, optimizedPoints, onMapClick }) {
       </MapContainer>
       
       <div className="map-instructions">
-        {isOptimized 
-          ? 'Rota otimizada exibida no mapa'
-          : 'Clique no mapa para adicionar pontos rapidamente'}
+        {!graphhopperConfigured ? (
+          'Configure a chave GraphHopper em services/graphhopper.js'
+        ) : isLoadingRoute ? (
+          'Carregando rota real com GraphHopper...'
+        ) : isOptimized ? (
+          'Rota otimizada seguindo estradas reais (GraphHopper API)'
+        ) : (
+          'Clique no mapa para adicionar pontos rapidamente'
+        )}
       </div>
     </div>
   );
@@ -316,17 +320,21 @@ export default function RouteOptimization({ onNavigate }) {
     carbon: '--'
   });
   const [optimizedPoints, setOptimizedPoints] = useState([]);
+  const [routeGeometry, setRouteGeometry] = useState([]);
   const [isCalculating, setIsCalculating] = useState(false);
+  const [isLoadingRoute, setIsLoadingRoute] = useState(false);
 
   const handleAddPoint = (point) => {
     addPoint(point);
     setOptimizedPoints([]);
+    setRouteGeometry([]);
   };
 
   const handleRemovePoint = (pointIndex) => {
     if (window.confirm('Deseja remover este ponto?')) {
       removePoint(pointIndex);
       setOptimizedPoints([]);
+      setRouteGeometry([]);
       setRouteInfo({ distance: '--', duration: '--', carbon: '--' });
     }
   };
@@ -357,6 +365,7 @@ export default function RouteOptimization({ onNavigate }) {
         });
         
         setOptimizedPoints([]);
+        setRouteGeometry([]);
       } else {
         throw new Error('Erro na API');
       }
@@ -372,6 +381,7 @@ export default function RouteOptimization({ onNavigate }) {
       });
       
       setOptimizedPoints([]);
+      setRouteGeometry([]);
     }
   };
 
@@ -388,9 +398,28 @@ export default function RouteOptimization({ onNavigate }) {
           carbon: result.carbon
         });
         setOptimizedPoints(result.optimized_points);
-        alert('Rota calculada e otimizada com sucesso!');
+        
+        setIsLoadingRoute(true);
+        const routeData = await calculateRealRoute(result.optimized_points);
+        
+        if (routeData && routeData.geometry) {
+          setRouteGeometry(routeData.geometry);
+          
+          setRouteInfo({
+            distance: `${routeData.distance} km`,
+            duration: `${routeData.duration} min`,
+            carbon: `${(routeData.distance * 0.21).toFixed(1)} kg CO₂`
+          });
+          
+          alert('Rota calculada com sucesso usando dados reais do GraphHopper!');
+        } else {
+          setRouteGeometry(result.optimized_points.map(p => [p.latitude, p.longitude]));
+          alert('Rota calculada! (Usando estimativa - configure GraphHopper para rotas reais)');
+        }
+        
+        setIsLoadingRoute(false);
       } else {
-        alert('Erro ao calcular rota! Verifique o console do navegador e do Flask.');
+        alert('Erro ao calcular rota! Verifique o console.');
       }
     } catch (error) {
       console.error('Erro ao calcular:', error);
@@ -407,6 +436,7 @@ export default function RouteOptimization({ onNavigate }) {
       alert('Rota salva com sucesso!');
       setRouteInfo({ distance: '--', duration: '--', carbon: '--' });
       setOptimizedPoints([]);
+      setRouteGeometry([]);
       onNavigate('history');
     } else {
       alert('Erro ao salvar rota!');
@@ -452,6 +482,8 @@ export default function RouteOptimization({ onNavigate }) {
               points={currentPoints}
               optimizedPoints={optimizedPoints}
               onMapClick={handleMapClick}
+              routeGeometry={routeGeometry}
+              isLoadingRoute={isLoadingRoute}
             />
             <RouteInfo 
               info={routeInfo}
