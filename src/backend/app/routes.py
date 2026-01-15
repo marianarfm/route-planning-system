@@ -154,7 +154,7 @@ def create_route():
 @api.route('/routes/<int:route_id>', methods=['DELETE'])
 @jwt_required()
 def delete_route(route_id):
-    user_id = int(get_jwt_identity())  # Converte de volta para int
+    user_id = int(get_jwt_identity())
     route = Route.query.filter_by(id=route_id, user_id=user_id).first()
     
     if not route:
