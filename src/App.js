@@ -38,7 +38,7 @@ function AppContent() {
         justifyContent: 'center',
         alignItems: 'center',
         height: '100vh',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+        background: '#f5f5f5'
       }}>
         <div style={{
           background: 'white',

@@ -91,15 +91,27 @@ function DeliveryPointForm({ onAdd }) {
   );
 }
 
-function DeliveryPointList({ points, onRemove, onCalculate, optimizedPoints }) {
+function DeliveryPointList({ points, onRemove, onCalculate, optimizedPoints, onClearAll }) {
   const displayPoints = optimizedPoints.length > 0 ? optimizedPoints : points;
   const isOptimized = optimizedPoints.length > 0;
 
   return (
     <div className="delivery-list">
-      <h3 className="section-title">
-        {isOptimized ? 'Rota Otimizada' : `Pontos de Entrega (${points.length})`}
-      </h3>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+        <h3 className="section-title" style={{ margin: 0 }}>
+          {isOptimized ? 'Rota Otimizada' : `Pontos de Entrega (${points.length})`}
+        </h3>
+        {(points.length > 0 || isOptimized) && (
+          <button 
+            className="btn-clear"
+            onClick={onClearAll}
+            title="Limpar tudo e começar nova rota"
+          >
+            Limpar
+          </button>
+        )}
+      </div>
+      
       {displayPoints.length === 0 ? (
         <p className="empty-message">Nenhum ponto adicionado ainda.</p>
       ) : (
@@ -135,6 +147,16 @@ function DeliveryPointList({ points, onRemove, onCalculate, optimizedPoints }) {
       {points.length >= 2 && !isOptimized && (
         <button className="btn-primary btn-full" onClick={onCalculate}>
           Calcular Rota Otimizada
+        </button>
+      )}
+      
+      {isOptimized && (
+        <button 
+          className="btn-secondary btn-full" 
+          onClick={onClearAll}
+          style={{ marginTop: '10px' }}
+        >
+          Criar Nova Rota
         </button>
       )}
     </div>
@@ -313,7 +335,7 @@ function RouteInfo({ info, hasPoints, onSave }) {
 }
 
 export default function RouteOptimization({ onNavigate }) {
-  const { currentPoints, addPoint, removePoint, calculateRoute, saveRoute } = useApp();
+  const { currentPoints, addPoint, removePoint, clearPoints, calculateRoute, saveRoute } = useApp();
   const [routeInfo, setRouteInfo] = useState({
     distance: '--',
     duration: '--',
@@ -333,6 +355,15 @@ export default function RouteOptimization({ onNavigate }) {
   const handleRemovePoint = (pointIndex) => {
     if (window.confirm('Deseja remover este ponto?')) {
       removePoint(pointIndex);
+      setOptimizedPoints([]);
+      setRouteGeometry([]);
+      setRouteInfo({ distance: '--', duration: '--', carbon: '--' });
+    }
+  };
+
+  const handleClearAll = () => {
+    if (window.confirm('Deseja limpar todos os pontos e começar uma nova rota?')) {
+      clearPoints();
       setOptimizedPoints([]);
       setRouteGeometry([]);
       setRouteInfo({ distance: '--', duration: '--', carbon: '--' });
@@ -474,6 +505,7 @@ export default function RouteOptimization({ onNavigate }) {
               optimizedPoints={optimizedPoints}
               onRemove={handleRemovePoint}
               onCalculate={handleCalculate}
+              onClearAll={handleClearAll}
             />
           </div>
           

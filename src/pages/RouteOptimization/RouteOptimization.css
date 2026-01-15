@@ -175,6 +175,22 @@
   overflow-y: auto;
 }
 
+.btn-clear {
+  background: #9ca3af;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.3s;
+}
+
+.btn-clear:hover {
+  background: #828C9B;
+}
+
 .empty-message {
   text-align: center;
   color: #9ca3af;
